@@ -3,6 +3,12 @@
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
+Install packages:
+### `npm i`
+npm install react-router-dom formik yup react-pdf 
+npm install pdfjs-dist 
+node -v                                                                    
+v18.20.5
 
 In the project directory, you can run:
 
