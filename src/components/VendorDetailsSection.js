@@ -1,5 +1,3 @@
-"use client";
-
 import { Field, ErrorMessage } from "formik";
 
 const VendorDetailsSection = ({

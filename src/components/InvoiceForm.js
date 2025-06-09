@@ -580,6 +580,11 @@ startxref
                       <PDFUploadArea
                         pdfFile={pdfFile}
                         setPdfFile={setPdfFile}
+                        setValues={setValues}
+                        setFormTouched={setFormTouched}
+                        setHasUnsavedChanges={setHasUnsavedChanges}
+                        setSuccessMessage={setSuccessMessage}
+                        setShowSuccess={setShowSuccess}
                       />
                     </div>
 
@@ -588,6 +593,7 @@ startxref
                       <VendorDetailsSection
                         errors={errors}
                         touched={touched}
+                        values={values}
                         handleFormChange={handleFormChange}
                         handleFormBlur={handleFormBlur}
                         vendorSectionRef={vendorSectionRef}

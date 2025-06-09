@@ -1,15 +1,56 @@
 import { useState } from "react";
 import "./PDFUploadArea.css";
+import { extractTextFromPDF, parseInvoiceData } from "../utils/dataUtils";
 
-const PDFUploadArea = ({ pdfFile, setPdfFile }) => {
+const PDFUploadArea = ({
+  pdfFile,
+  setPdfFile,
+  setValues,
+  setFormTouched,
+  setHasUnsavedChanges,
+  setSuccessMessage,
+  setShowSuccess,
+}) => {
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState("");
 
-  const handleFileChange = (file) => {
+  const normalizeVendorName = (rawName) => {
+    const vendors = {
+      "ACME CORPORATION": "Acme Corporation",
+      "TECH SOLUTIONS INC": "Tech Solutions Inc",
+      "GLOBAL SERVICES LTD": "Global Services Ltd",
+    };
+    return vendors[rawName.toUpperCase()] || "";
+  };
+
+  const handleFileChange = async (file) => {
     if (file) {
       if (file.type === "application/pdf") {
         setPdfFile(file);
         setError("");
+
+        try {
+          const text = await extractTextFromPDF(file);
+          const parsedData = parseInvoiceData(text);
+
+          //  Auto-fill the form fields using parsed data
+          setValues((prev) => ({
+            ...prev,
+            vendorName: normalizeVendorName(parsedData.vendorName) || "",
+            invoiceNumber: parsedData.invoiceNumber || "",
+            invoiceDate: parsedData.date || "",
+            totalAmount: parsedData.totalAmount || "",
+          }));
+
+          setFormTouched(true);
+          setHasUnsavedChanges?.(true);
+          setSuccessMessage("PDF data extracted and form populated!");
+          setShowSuccess(true);
+          setTimeout(() => setShowSuccess(false), 3000);
+        } catch (err) {
+          console.error("Error extracting PDF:", err);
+          setError("Failed to extract data from PDF.");
+        }
       } else {
         setError("Please select a valid PDF file.");
         setPdfFile(null);

@@ -1,4 +1,8 @@
-// User-specific data storage functions
+import * as pdfjsLib from "pdfjs-dist";
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.js";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
 export const saveFormData = (data, username) => {
   if (!username) return;
 
@@ -247,4 +251,81 @@ export const getMostRecentSubmission = (username) => {
   );
 
   return sortedForms[0];
+};
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+export const extractTextFromPDF = async (file) => {
+  const pdfjsLib = await import("pdfjs-dist/build/pdf");
+  const pdfjsWorker = await import("pdfjs-dist/build/pdf.worker.entry");
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
+  const reader = new FileReader();
+
+  return new Promise((resolve, reject) => {
+    reader.onload = async () => {
+      const typedarray = new Uint8Array(reader.result);
+
+      try {
+        const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+        let textContent = "";
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const strings = content.items.map((item) => item.str);
+          textContent += strings.join(" ") + "\n";
+        }
+
+        resolve(textContent);
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+};
+
+export const parseInvoiceData = (text) => {
+  const result = {
+    vendorName: "",
+    invoiceNumber: "",
+    date: "",
+    totalAmount: 0,
+  };
+
+  //  Extract vendor name (first all-uppercase line with optional punctuation)
+  const vendorNameMatch = text.match(/^[A-Z][A-Z\s&.,'-]+(?=\s+\d+)/m);
+  if (vendorNameMatch) {
+    result.vendorName = vendorNameMatch[0].trim();
+  }
+
+  // Extract invoice number (e.g., "Invoice #: INV-2024-001")
+  const invoiceMatch = text.match(/Invoice\s*(#|No\.?)\s*[:\-]?\s*(\S+)/i);
+  if (invoiceMatch) {
+    result.invoiceNumber = invoiceMatch[2].trim();
+  }
+
+  const dateMatch = text.match(
+    /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},\s+\d{4}\b/i
+  );
+  if (dateMatch) {
+    const rawDate = new Date(dateMatch[0]);
+    const yyyy = rawDate.getFullYear();
+    const mm = String(rawDate.getMonth() + 1).padStart(2, "0");
+    const dd = String(rawDate.getDate()).padStart(2, "0");
+    result.date = `${yyyy}-${mm}-${dd}`;
+  }
+
+  //  Extract total amount (e.g., "Total Amount: $2,500.00")
+  const totalMatch = text.match(
+    /Total\s*(Amount)?\s*[:\-]?\s*\$?([\d,]+\.\d{2})/i
+  );
+  if (totalMatch) {
+    result.totalAmount = parseFloat(totalMatch[2].replace(/,/g, ""));
+  }
+
+  return result;
 };
